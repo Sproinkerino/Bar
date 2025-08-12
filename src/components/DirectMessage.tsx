@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, ArrowLeft } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { ChatConversation, DirectMessage as DirectMessageType } from '../types';
 import { useAuth } from '../hooks/useAuth';
 
@@ -18,6 +19,32 @@ export const DirectMessage: React.FC<DirectMessageProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const otherUser = conversation.participants[0];
 
+  const fetchMessages = useCallback(async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('direct_messages')
+      .select('*')
+      .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${otherUser.id}),and(from_user_id.eq.${otherUser.id},to_user_id.eq.${user.id})`)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching messages:', error);
+      return;
+    }
+
+    const formattedMessages: DirectMessageType[] = data.map(msg => ({
+      id: msg.id,
+      fromUserId: msg.from_user_id,
+      toUserId: msg.to_user_id,
+      message: msg.message,
+      timestamp: new Date(msg.created_at),
+      read: msg.read
+    }));
+
+    setMessages(formattedMessages);
+  }, [user, otherUser.id]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -26,68 +53,39 @@ export const DirectMessage: React.FC<DirectMessageProps> = ({
     scrollToBottom();
   }, [messages]);
 
-  // Add some initial demo messages
   useEffect(() => {
-    if (messages.length === 0) {
-      const demoMessages: DirectMessageType[] = [
-        {
-          id: '1',
-          fromUserId: otherUser.id,
-          toUserId: user?.id || '',
-          message: 'Hey! I saw your bubble and thought it was really interesting!',
-          timestamp: new Date(Date.now() - 300000),
-          read: true
-        },
-        {
-          id: '2', 
-          fromUserId: otherUser.id,
-          toUserId: user?.id || '',
-          message: 'Would love to chat more about it 😊',
-          timestamp: new Date(Date.now() - 240000),
-          read: true
-        }
-      ];
-      setMessages(demoMessages);
-    }
-  }, [messages.length, otherUser.id, user?.id]);
+    fetchMessages();
+  }, [fetchMessages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim() || !user) return;
 
-    const message: DirectMessageType = {
-      id: Date.now().toString(),
-      fromUserId: user.id,
-      toUserId: otherUser.id,
-      message: newMessage.trim(),
-      timestamp: new Date(),
-      read: false
+    const { data, error } = await supabase
+      .from('direct_messages')
+      .insert({
+        from_user_id: user.id,
+        to_user_id: otherUser.id,
+        message: newMessage.trim()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error sending message:', error);
+      return;
+    }
+
+    const newMsg: DirectMessageType = {
+      id: data.id,
+      fromUserId: data.from_user_id,
+      toUserId: data.to_user_id,
+      message: data.message,
+      timestamp: new Date(data.created_at),
+      read: data.read
     };
 
-    setMessages(prev => [...prev, message]);
+    setMessages(prev => [...prev, newMsg]);
     setNewMessage('');
-
-    // Simulate response after a short delay
-    setTimeout(() => {
-      const responses = [
-        'That\'s a great point!',
-        'I totally agree with you!',
-        'Thanks for sharing that!',
-        'Interesting perspective!',
-        'I hadn\'t thought of it that way',
-        'Love this conversation!'
-      ];
-      
-      const response: DirectMessageType = {
-        id: Date.now().toString(),
-        fromUserId: otherUser.id,
-        toUserId: user.id,
-        message: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: new Date(),
-        read: false
-      };
-      
-      setMessages(prev => [...prev, response]);
-    }, 1500 + Math.random() * 2000);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -96,6 +94,43 @@ export const DirectMessage: React.FC<DirectMessageProps> = ({
       handleSendMessage();
     }
   };
+
+  // Subscribe to real-time messages
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('direct_messages')
+      .on('postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'direct_messages',
+          filter: `or(and(from_user_id.eq.${user.id},to_user_id.eq.${otherUser.id}),and(from_user_id.eq.${otherUser.id},to_user_id.eq.${user.id}))`
+        },
+        (payload) => {
+          const newMsg: DirectMessageType = {
+            id: payload.new.id,
+            fromUserId: payload.new.from_user_id,
+            toUserId: payload.new.to_user_id,
+            message: payload.new.message,
+            timestamp: new Date(payload.new.created_at),
+            read: payload.new.read
+          };
+
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, otherUser.id]);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">

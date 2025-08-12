@@ -1,68 +1,172 @@
 import { useState, useCallback, useEffect } from 'react';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 import { User, AuthState } from '../types';
 
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'ArtisticSoul',
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    aura: 42,
-    isOnline: true
-  },
-  {
-    id: '2',
-    name: 'TechExplorer',
-    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    aura: 38,
-    isOnline: true
-  },
-  {
-    id: '3',
-    name: 'DreamCatcher',
-    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    aura: 51,
-    isOnline: false
-  },
-  {
-    id: '4',
-    name: 'VibeSeeker',
-    avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    aura: 29,
-    isOnline: true
-  }
-];
-
 export const useAuth = (): AuthState => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('currentUser');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = useCallback((provider: 'google' | 'instagram') => {
-    // Mock login - in production this would handle OAuth
-    const randomUser = mockUsers[Math.floor(Math.random() * mockUsers.length)];
-    const loggedInUser = {
-      ...randomUser,
-      id: Date.now().toString(),
-      name: `${randomUser.name}${Math.floor(Math.random() * 100)}`,
+  const createProfile = async (supabaseUser: SupabaseUser) => {
+    const avatarUrls = [
+      'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+      'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+      'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+      'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+    ];
+
+    const randomAvatar = avatarUrls[Math.floor(Math.random() * avatarUrls.length)];
+    const randomName = `User${Math.floor(Math.random() * 10000)}`;
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: supabaseUser.id,
+        name: randomName,
+        avatar: randomAvatar,
+        aura: Math.floor(Math.random() * 50) + 10,
+        is_online: true
+      });
+
+    if (error) {
+      console.error('Error creating profile:', error);
+      return null;
+    }
+
+    return {
+      id: supabaseUser.id,
+      name: randomName,
+      avatar: randomAvatar,
+      aura: Math.floor(Math.random() * 50) + 10,
       isOnline: true
     };
-    
-    setUser(loggedInUser);
-    localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
+  };
+
+  const fetchProfile = async (supabaseUser: SupabaseUser): Promise<User | null> => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', supabaseUser.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        return await createProfile(supabaseUser);
+      }
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+
+    // Update online status
+    await supabase
+      .from('profiles')
+      .update({ is_online: true })
+      .eq('id', supabaseUser.id);
+
+    return {
+      id: data.id,
+      name: data.name,
+      avatar: data.avatar || '',
+      aura: data.aura,
+      isOnline: data.is_online
+    };
+  };
+
+  const login = useCallback(async (provider: 'google' | 'instagram') => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider === 'instagram' ? 'google' : provider,
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    if (user) {
+      // Update online status to false
+      await supabase
+        .from('profiles')
+        .update({ is_online: false })
+        .eq('id', user.id);
+    }
+
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Logout error:', error);
+    }
     setUser(null);
-    localStorage.removeItem('currentUser');
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    // Auto-login for demo purposes
-    if (!user) {
-      setTimeout(() => login('google'), 1000);
-    }
-  }, [user, login]);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchProfile(session.user).then(setUser);
+      }
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const profile = await fetchProfile(session.user);
+          setUser(profile);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Update online status when user becomes active/inactive
+  useEffect(() => {
+    if (!user) return;
+
+    const updateOnlineStatus = (isOnline: boolean) => {
+      supabase
+        .from('profiles')
+        .update({ is_online: isOnline })
+        .eq('id', user.id);
+    };
+
+    const handleVisibilityChange = () => {
+      updateOnlineStatus(!document.hidden);
+    };
+
+    const handleBeforeUnload = () => {
+      updateOnlineStatus(false);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user]);
+
+  if (loading) {
+    return {
+      user: null,
+      isAuthenticated: false,
+      login,
+      logout
+    };
+  }
 
   return {
     user,
