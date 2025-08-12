@@ -75,8 +75,43 @@ export const useAuth = (): AuthState => {
 
   const login = useCallback(async (provider: 'google' | 'instagram') => {
     try {
+      // For demo purposes, we'll use email/password auth since OAuth requires additional setup
+      // In production, you would configure OAuth providers in Supabase dashboard
+      const email = `demo${Math.floor(Math.random() * 10000)}@example.com`;
+      const password = 'demo123456';
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            provider: provider
+          }
+        }
+      });
+
+      if (error && error.message.includes('already registered')) {
+        // If user exists, sign them in
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (signInError) {
+          console.error('Sign in error:', signInError);
+        }
+      } else if (error) {
+        console.error('Sign up error:', error);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    }
+  }, []);
+
+  // Alternative OAuth method (requires Supabase OAuth configuration)
+  const loginWithOAuth = useCallback(async (provider: 'google' | 'instagram') => {
+    try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: provider === 'instagram' ? 'google' : provider,
+        provider: provider === 'instagram' ? 'google' : provider, // Instagram uses Google OAuth
         options: {
           redirectTo: window.location.origin
         }

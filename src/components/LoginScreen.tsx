@@ -64,25 +64,25 @@ export const LoginScreen: React.FC = () => {
           <div className="space-y-4">
             <button
               onClick={() => login('google')}
-              className="w-full bg-white border-2 border-gray-300 hover:border-purple-400 text-gray-700 font-semibold py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3"
+              className="w-full bg-white border-2 border-gray-300 hover:border-purple-400 text-gray-700 font-semibold py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 shadow-lg"
             >
               <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-red-500 rounded-full" />
-              Continue with Google
+              Demo Login (Google Style)
             </button>
             
             <button
               onClick={() => login('instagram')}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3"
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 shadow-lg"
             >
-              <div className="w-6 h-6 bg-white rounded-full" />
-              Continue with Instagram
+              <div className="w-6 h-6 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full" />
+              Demo Login (Instagram Style)
             </button>
           </div>
 
           {/* Demo Note */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
-              This is a demo - click any button to start exploring!
+              Demo mode - creates a random user account to explore the app!
             </p>
           </div>
         </div>
