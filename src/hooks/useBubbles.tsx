@@ -106,7 +106,7 @@ export const useBubbles = () => {
   }, []);
 
   const addReaction = useCallback(async (bubbleId: string) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('bubbles')
       .update({ reactions: supabase.sql`reactions + 1` })
       .eq('id', bubbleId);

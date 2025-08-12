@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChatConversation, DirectMessage as DirectMessageType } from '../types';
