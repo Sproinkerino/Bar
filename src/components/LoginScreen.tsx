@@ -95,7 +95,7 @@ export const LoginScreen: React.FC = () => {
             <div className="mt-4 pt-4 border-t border-gray-200">
               <button
                 onClick={loginAsGuest}
-                className="text-purple-600 hover:text-purple-700 font-medium text-sm transition-colors duration-200"
+                className="text-purple-600 hover:text-purple-700 font-medium text-sm transition-colors duration-200 cursor-pointer"
               >
                 Continue as Guest
               </button>
