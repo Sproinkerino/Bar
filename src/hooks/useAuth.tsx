@@ -93,35 +93,16 @@ export const useAuth = (): AuthState => {
 
   const loginAsGuest = useCallback(async () => {
     try {
-      // Create a temporary email for guest login
-      const guestEmail = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}@demo.com`;
-      const guestPassword = Math.random().toString(36).substr(2, 15);
-
-      const { error } = await supabase.auth.signUp({
-        email: guestEmail,
-        password: guestPassword,
-        options: {
-          emailRedirectTo: undefined, // Skip email confirmation
-          data: {
-            email_confirm: true // Auto-confirm email for guest accounts
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Guest login error:', error);
-        return;
-      }
-
-      // Immediately sign in the guest user
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: guestEmail,
-        password: guestPassword
-      });
-
-      if (signInError) {
-        console.error('Guest sign in error:', signInError);
-      }
+      // Create a guest user directly without Supabase auth
+      const guestUser: User = {
+        id: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: `Guest${Math.floor(Math.random() * 10000)}`,
+        avatar: `https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop`,
+        aura: Math.floor(Math.random() * 50) + 10,
+        isOnline: true
+      };
+      
+      setUser(guestUser);
     } catch (error) {
       console.error('Guest login error:', error);
     }
