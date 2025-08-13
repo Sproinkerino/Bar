@@ -97,16 +97,30 @@ export const useAuth = (): AuthState => {
       const guestEmail = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}@demo.com`;
       const guestPassword = Math.random().toString(36).substr(2, 15);
 
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: guestEmail,
         password: guestPassword,
         options: {
-          emailRedirectTo: undefined // Skip email confirmation
+          emailRedirectTo: undefined, // Skip email confirmation
+          data: {
+            email_confirm: true // Auto-confirm email for guest accounts
+          }
         }
       });
 
       if (error) {
         console.error('Guest login error:', error);
+        return;
+      }
+
+      // Immediately sign in the guest user
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: guestEmail,
+        password: guestPassword
+      });
+
+      if (signInError) {
+        console.error('Guest sign in error:', signInError);
       }
     } catch (error) {
       console.error('Guest login error:', error);
