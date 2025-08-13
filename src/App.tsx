@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { BubbleField } from './components/BubbleField';
 import { ChatBar } from './components/ChatBar';
 import { ProfileButton } from './components/ProfileButton';
@@ -10,7 +10,10 @@ function App() {
   const { user, isAuthenticated } = useAuth();
   const [addBubbleFn, setAddBubbleFn] = useState<((message: string, user: User) => void) | null>(null);
 
-  console.log('App render - isAuthenticated:', isAuthenticated, 'user:', user?.name || 'none');
+  // Debug logging
+  useEffect(() => {
+    console.log('App render - isAuthenticated:', isAuthenticated, 'user:', user?.name || 'null');
+  }, [isAuthenticated, user]);
 
   const handleAddBubble = useCallback((addBubbleFn: (message: string, user: User) => void) => {
     setAddBubbleFn(() => addBubbleFn);
@@ -22,10 +25,13 @@ function App() {
     }
   }, [addBubbleFn, user]);
 
-  if (!isAuthenticated) {
+  // Show login screen if not authenticated
+  if (!isAuthenticated || !user) {
+    console.log('Showing login screen');
     return <LoginScreen />;
   }
 
+  console.log('Showing main app with bubbles');
   return (
     <div className="min-h-screen relative overflow-hidden">
       <BubbleField user={user} onAddBubble={handleAddBubble} />

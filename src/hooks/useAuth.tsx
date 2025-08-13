@@ -1,12 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { User } from '../types';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
 
-  const loginAsGuest = () => {
-    console.log('Creating guest user...');
-    
+  const loginAsGuest = useCallback(() => {
     const avatarUrls = [
       'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
       'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
@@ -15,26 +13,29 @@ export const useAuth = () => {
     ];
 
     const guestUser: User = {
-      id: `guest_${Date.now()}`,
+      id: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: `Guest${Math.floor(Math.random() * 10000)}`,
       avatar: avatarUrls[Math.floor(Math.random() * avatarUrls.length)],
       aura: Math.floor(Math.random() * 50) + 10,
       isOnline: true
     };
 
-    console.log('Setting user:', guestUser);
+    console.log('Creating guest user:', guestUser);
     setUser(guestUser);
-  };
+  }, []);
 
-  const login = () => {
-    console.log('OAuth login not implemented yet');
-  };
+  const login = useCallback((provider: 'google' | 'instagram') => {
+    console.log(`OAuth login with ${provider} not implemented yet`);
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
-  };
+  }, []);
 
-  console.log('useAuth - current user:', user?.name || 'none');
+  // Debug logging
+  useEffect(() => {
+    console.log('Auth state changed - user:', user ? user.name : 'null');
+  }, [user]);
 
   return {
     user,
