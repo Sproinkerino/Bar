@@ -3,7 +3,7 @@ import { LogIn, MessageCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export const LoginScreen: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loginAsGuest } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-pink-100 flex items-center justify-center p-4">
@@ -91,6 +91,15 @@ export const LoginScreen: React.FC = () => {
             <p className="text-sm text-gray-500">
               Secure OAuth authentication via Supabase
             </p>
+            
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <button
+                onClick={loginAsGuest}
+                className="text-purple-600 hover:text-purple-700 font-medium text-sm transition-colors duration-200"
+              >
+                Continue as Guest
+              </button>
+            </div>
           </div>
         </div>
       </div>

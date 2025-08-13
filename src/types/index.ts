@@ -39,5 +39,6 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   login: (provider: 'google' | 'instagram') => void;
+  loginAsGuest: () => void;
   logout: () => void;
 }

@@ -90,6 +90,27 @@ export const useAuth = (): AuthState => {
     }
   }, []);
 
+  const loginAsGuest = useCallback(async () => {
+    try {
+      // Create a temporary email for guest login
+      const guestEmail = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}@demo.com`;
+      const guestPassword = Math.random().toString(36).substr(2, 15);
+
+      const { data, error } = await supabase.auth.signUp({
+        email: guestEmail,
+        password: guestPassword,
+        options: {
+          emailRedirectTo: undefined // Skip email confirmation
+        }
+      });
+
+      if (error) {
+        console.error('Guest login error:', error);
+      }
+    } catch (error) {
+      console.error('Guest login error:', error);
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     if (user) {
@@ -173,6 +194,7 @@ export const useAuth = (): AuthState => {
     user,
     isAuthenticated: !!user,
     login,
+    loginAsGuest,
     logout
   };
 };
