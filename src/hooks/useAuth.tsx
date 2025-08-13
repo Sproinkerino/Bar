@@ -47,15 +47,16 @@ export const useAuth = (): AuthState => {
       .from('profiles')
       .select('*')
       .eq('id', supabaseUser.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        // Profile doesn't exist, create it
-        return await createProfile(supabaseUser);
-      }
       console.error('Error fetching profile:', error);
       return null;
+    }
+
+    if (!data) {
+      // Profile doesn't exist, create it
+      return await createProfile(supabaseUser);
     }
 
     // Update online status
