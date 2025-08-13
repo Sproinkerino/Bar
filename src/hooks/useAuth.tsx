@@ -224,6 +224,7 @@ export const useAuth = (): AuthState => {
     isAuthenticated: !!user,
     login,
     loginAsGuest,
+    loginAsGuest,
     logout
   };
 };
