@@ -7,6 +7,8 @@ export const useAuth = (): AuthState => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('useAuth hook - current user:', user?.name || 'null', 'loading:', loading);
+
   const createProfile = async (supabaseUser: SupabaseUser) => {
     const avatarUrls = [
       'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
@@ -55,11 +57,9 @@ export const useAuth = (): AuthState => {
     }
 
     if (!data) {
-      // Profile doesn't exist, create it
       return await createProfile(supabaseUser);
     }
 
-    // Update online status
     await supabase
       .from('profiles')
       .update({ is_online: true })
@@ -91,16 +91,9 @@ export const useAuth = (): AuthState => {
     }
   }, []);
 
-  const loginAsGuest = useCallback(async () => {
+  const loginAsGuest = useCallback(() => {
     console.log('Guest login clicked');
     
-    // Prevent multiple rapid clicks
-    if (user) {
-      console.log('User already exists, ignoring guest login');
-      return;
-    }
-    
-    // Create a simple guest user without Supabase auth
     const avatarUrls = [
       'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
       'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
@@ -116,43 +109,48 @@ export const useAuth = (): AuthState => {
       isOnline: true
     };
 
-    console.log('Setting guest user:', guestUser);
-    
-    // Force state update with a new object reference
-    setUser({ ...guestUser });
-    setLoading(false); // Ensure loading is false
-    
-    console.log('Guest user set, should redirect now');
-  }, [user]);
+    console.log('Creating guest user:', guestUser);
+    setUser(guestUser);
+    setLoading(false);
+    console.log('Guest user created and set');
+  }, []);
 
   const logout = useCallback(async () => {
-    if (user) {
-      // Update online status to false
+    if (user && !user.id.startsWith('guest_')) {
       await supabase
         .from('profiles')
         .update({ is_online: false })
         .eq('id', user.id);
+      
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+      }
     }
-
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Logout error:', error);
-    }
+    
     setUser(null);
+    setLoading(false);
   }, [user]);
 
   useEffect(() => {
-    // Get initial session
+    console.log('useAuth useEffect - initializing auth state');
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session ? 'exists' : 'none');
       if (session?.user) {
-        fetchProfile(session.user).then(setUser);
+        fetchProfile(session.user).then((profile) => {
+          console.log('Profile fetched:', profile?.name || 'null');
+          setUser(profile);
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session ? 'session exists' : 'no session');
         if (event === 'SIGNED_IN' && session?.user) {
           const profile = await fetchProfile(session.user);
           setUser(profile);
@@ -166,9 +164,8 @@ export const useAuth = (): AuthState => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Update online status when user becomes active/inactive
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.id.startsWith('guest_')) return;
 
     const updateOnlineStatus = (isOnline: boolean) => {
       supabase
@@ -194,19 +191,13 @@ export const useAuth = (): AuthState => {
     };
   }, [user]);
 
-  if (loading) {
-    return {
-      user: null,
-      isAuthenticated: false,
-      login,
-      loginAsGuest,
-      logout
-    };
-  }
+  const isAuthenticated = !!user;
+  
+  console.log('useAuth returning - user:', user?.name || 'null', 'isAuthenticated:', isAuthenticated, 'loading:', loading);
 
   return {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated,
     login,
     loginAsGuest,
     logout
