@@ -109,7 +109,9 @@ export const useAuth = (): AuthState => {
       isOnline: true
     };
 
+    console.log('Setting guest user:', guestUser);
     setUser(guestUser);
+    console.log('Guest user set, should redirect now');
   }, []);
 
   const logout = useCallback(async () => {
