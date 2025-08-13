@@ -117,12 +117,11 @@ export const useAuth = (): AuthState => {
     };
 
     console.log('Setting guest user:', guestUser);
-    setUser(guestUser);
     
-    // Force a small delay to ensure state is updated
-    setTimeout(() => {
-      console.log('Current user after timeout:', guestUser);
-    }, 100);
+    // Force state update with a new object reference
+    setUser({ ...guestUser });
+    setLoading(false); // Ensure loading is false
+    
     console.log('Guest user set, should redirect now');
   }, [user]);
 
