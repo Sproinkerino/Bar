@@ -93,6 +93,13 @@ export const useAuth = (): AuthState => {
 
   const loginAsGuest = useCallback(async () => {
     console.log('Guest login clicked');
+    
+    // Prevent multiple rapid clicks
+    if (user) {
+      console.log('User already exists, ignoring guest login');
+      return;
+    }
+    
     // Create a simple guest user without Supabase auth
     const avatarUrls = [
       'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
@@ -111,8 +118,13 @@ export const useAuth = (): AuthState => {
 
     console.log('Setting guest user:', guestUser);
     setUser(guestUser);
+    
+    // Force a small delay to ensure state is updated
+    setTimeout(() => {
+      console.log('Current user after timeout:', guestUser);
+    }, 100);
     console.log('Guest user set, should redirect now');
-  }, []);
+  }, [user]);
 
   const logout = useCallback(async () => {
     if (user) {
