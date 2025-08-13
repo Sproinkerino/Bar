@@ -8,6 +8,7 @@ export const useAuth = (): AuthState => {
   const [loading, setLoading] = useState(true);
 
   const createProfile = async (supabaseUser: SupabaseUser) => {
+    const avatarUrls = [
       'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
       'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
       'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
@@ -108,6 +109,7 @@ export const useAuth = (): AuthState => {
       isOnline: true
     };
 
+    setUser(guestUser);
   }, []);
 
   const logout = useCallback(async () => {
