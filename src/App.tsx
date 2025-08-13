@@ -10,6 +10,8 @@ function App() {
   const { user, isAuthenticated } = useAuth();
   const [addBubbleFn, setAddBubbleFn] = useState<((message: string, user: User) => void) | null>(null);
 
+  console.log('App render - user:', user, 'isAuthenticated:', isAuthenticated);
+
   const handleAddBubble = useCallback((addBubbleFn: (message: string, user: User) => void) => {
     setAddBubbleFn(() => addBubbleFn);
   }, []);
@@ -21,9 +23,11 @@ function App() {
   }, [addBubbleFn, user]);
 
   if (!isAuthenticated) {
+    console.log('Showing login screen');
     return <LoginScreen />;
   }
 
+  console.log('Showing main app');
   return (
     <div className="min-h-screen relative overflow-hidden">
       <BubbleField user={user} onAddBubble={handleAddBubble} />
