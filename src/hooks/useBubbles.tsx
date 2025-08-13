@@ -55,6 +55,25 @@ export const useBubbles = () => {
     const vx = (Math.random() - 0.5) * 0.05;
     const vy = (Math.random() - 0.5) * 0.05;
 
+    // For guest users, just add to local state without database
+    if (user.id.startsWith('guest_')) {
+      const newBubble: Bubble = {
+        id: `bubble_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: user.id,
+        message,
+        timestamp: new Date(),
+        x,
+        y,
+        vx,
+        vy,
+        reactions: 0,
+        user
+      };
+
+      setBubbles(prev => [newBubble, ...prev].slice(0, 20));
+      return;
+    }
+
     const { data, error } = await supabase
       .from('bubbles')
       .insert({
@@ -106,6 +125,17 @@ export const useBubbles = () => {
   }, []);
 
   const addReaction = useCallback(async (bubbleId: string) => {
+    // For guest bubbles, just update local state
+    const bubble = bubbles.find(b => b.id === bubbleId);
+    if (bubble && bubble.userId.startsWith('guest_')) {
+      setBubbles(prev => prev.map(b => 
+        b.id === bubbleId 
+          ? { ...b, reactions: b.reactions + 1, user: { ...b.user, aura: b.user.aura + 1 } }
+          : b
+      ));
+      return;
+    }
+
     const { data, error } = await supabase
       .from('bubbles')
       .update({ reactions: supabase.sql`reactions + 1` })
@@ -117,7 +147,6 @@ export const useBubbles = () => {
     }
 
     // Also update user's aura
-    const bubble = bubbles.find(b => b.id === bubbleId);
     if (bubble) {
       await supabase
         .from('profiles')

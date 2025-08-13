@@ -8,7 +8,6 @@ export const useAuth = (): AuthState => {
   const [loading, setLoading] = useState(true);
 
   const createProfile = async (supabaseUser: SupabaseUser) => {
-    const avatarUrls = [
       'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
       'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
       'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
@@ -93,52 +92,22 @@ export const useAuth = (): AuthState => {
 
   const loginAsGuest = useCallback(async () => {
     console.log('Guest login clicked');
-    try {
-      const avatarUrls = [
-        'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-        'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-        'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-        'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-      ];
+    // Create a simple guest user without Supabase auth
+    const avatarUrls = [
+      'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+      'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+      'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+      'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+    ];
 
-      const randomAvatar = avatarUrls[Math.floor(Math.random() * avatarUrls.length)];
-      const guestEmail = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}@guest.local`;
-      const guestPassword = Math.random().toString(36).substr(2, 15);
+    const guestUser: User = {
+      id: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: `Guest${Math.floor(Math.random() * 10000)}`,
+      avatar: avatarUrls[Math.floor(Math.random() * avatarUrls.length)],
+      aura: Math.floor(Math.random() * 50) + 10,
+      isOnline: true
+    };
 
-      console.log('Attempting to sign up guest:', guestEmail);
-
-      // Sign up the guest user
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: guestEmail,
-        password: guestPassword,
-        options: {
-          emailRedirectTo: undefined,
-          data: {
-            name: `Guest${Math.floor(Math.random() * 10000)}`,
-            avatar: randomAvatar
-          }
-        }
-      });
-
-      if (signUpError) {
-        console.error('Guest signup error:', signUpError);
-        return;
-      }
-
-      console.log('Guest signup successful:', authData);
-
-      if (authData.user) {
-        // Create profile immediately
-        console.log('Creating profile for guest user');
-        const profile = await createProfile(authData.user);
-        if (profile) {
-          console.log('Profile created, setting user:', profile);
-          setUser(profile);
-        }
-      }
-    } catch (error) {
-      console.error('Guest login error:', error);
-    }
   }, []);
 
   const logout = useCallback(async () => {
@@ -215,6 +184,7 @@ export const useAuth = (): AuthState => {
       user: null,
       isAuthenticated: false,
       login,
+      loginAsGuest,
       logout
     };
   }
@@ -223,7 +193,6 @@ export const useAuth = (): AuthState => {
     user,
     isAuthenticated: !!user,
     login,
-    loginAsGuest,
     loginAsGuest,
     logout
   };
